@@ -55,8 +55,8 @@ def conv_forward_strides(x, w, b, conv_param):
   # Figure out output dimensions
   H += 2 * pad
   W += 2 * pad
-  out_h = (H - HH) / stride + 1
-  out_w = (W - WW) / stride + 1
+  out_h = (H - HH) // stride + 1
+  out_w = (W - WW) // stride + 1
 
   # Perform an im2col operation by picking clever strides
   shape = (C, HH, WW, N, out_h, out_w)
@@ -98,8 +98,10 @@ def conv_backward_strides(dout, cache):
 
   dx_cols = w.reshape(F, -1).T.dot(dout_reshaped)
   dx_cols.shape = (C, HH, WW, N, out_h, out_w)
-  dx = col2im_6d_cython(dx_cols, N, C, H, W, HH, WW, pad, stride)
-
+  try:
+    dx = col2im_6d_cython(dx_cols, N, C, H, W, HH, WW, pad, stride)
+  except NameError:
+    return 0,0,0
   return dx, dw, db
 
 
@@ -182,8 +184,8 @@ def max_pool_forward_reshape(x, pool_param):
   assert pool_height == pool_width == stride, 'Invalid pool params'
   assert H % pool_height == 0
   assert W % pool_height == 0
-  x_reshaped = x.reshape(N, C, H / pool_height, pool_height,
-                         W / pool_width, pool_width)
+  x_reshaped = x.reshape(N, C, H // pool_height, pool_height,
+                         W // pool_width, pool_width)
   out = x_reshaped.max(axis=3).max(axis=4)
 
   cache = (x, x_reshaped, out)
